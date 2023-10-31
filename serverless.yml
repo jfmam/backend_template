@@ -1,0 +1,24 @@
+service: serverless-template
+
+useDotenv: true
+
+plugins:
+  - serverless-offline
+  - serverless-plugin-typescript
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  environment:
+    Auth_REDIRECT_URI: ${env:Auth_REDIRECT_URI}
+
+functions:
+  main:
+    handler: dist/serverless.handler
+    events:
+      - http:
+          method: ANY
+          path: /
+      - http:
+          method: ANY
+          path: '{proxy+}'
