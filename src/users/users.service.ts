@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -11,6 +12,7 @@ export class UsersService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly configService: ConfigService,
+    private jwtService: JwtService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto) {
@@ -26,11 +28,10 @@ export class UsersService {
     return this.userRepository.findOneByEmail(email);
   }
 
-  generateAccessToken(userId: number) {
+  login(userId: number) {
     const payload = { sub: userId };
-    const token = jwt.sign(payload, this.configService.get('JWT_SECRET'), {
-      expiresIn: '15m',
-    });
+    const token = this.jwtService.sign(payload, { expiresIn: '15m' });
+
     return token;
   }
 
@@ -60,5 +61,20 @@ export class UsersService {
     const result = await bcrypt.compare(password, savedHashPassoword);
 
     return result;
+  }
+
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.findOneByEmail(email);
+
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    const isPasswordCorrect = this.comparePassword(pass, user.password);
+
+    if (!isPasswordCorrect) {
+      throw new UnauthorizedException();
+    }
+    return { email: user.email, name: user.name };
   }
 }

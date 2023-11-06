@@ -1,9 +1,20 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UnauthorizedException,
+  Get,
+  Request,
+  UseGuards,
+  Response,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import jwt from 'jsonwebtoken';
+import { Response as Res } from 'express';
 
 import { CreateUserDto, LoginUserDto } from './users.dto';
 import { UsersService } from './users.service';
+import { JwtAuthGuard } from './auth.guard';
 
 @Controller('users')
 export class UsersController {
@@ -21,8 +32,17 @@ export class UsersController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  getProfile(@Request() req) {
+    return req.user;
+  }
+
   @Post('login')
-  async login(@Body() { email, password }: LoginUserDto) {
+  async login(
+    @Body() { email, password }: LoginUserDto,
+    @Response({ passthrough: true }) res: Res,
+  ) {
     try {
       const user = await this.usersService.findOneByEmail(email);
       const isCorrect = await this.usersService.comparePassword(
@@ -34,8 +54,14 @@ export class UsersController {
         throw new UnauthorizedException();
       }
 
-      const accessToken = this.usersService.generateAccessToken(user.id);
+      const accessToken = this.usersService.login(user.id);
       const refreshToken = this.usersService.generateRefreshToken(user.id);
+      res.cookie('rt', refreshToken, {
+        ...(this.configService.get('nodeEnv') === 'production' && {
+          httpOnly: true,
+          secure: true,
+        }),
+      });
       return { accessToken, refreshToken };
     } catch (e) {
       return { message: 'Invalid credentials' };
@@ -53,8 +79,9 @@ export class UsersController {
       );
       console.log(decoded);
       const user = await this.usersService.findOneByEmail(decoded as any);
+
       if (user) {
-        const accessToken = this.usersService.generateAccessToken(user.id);
+        const accessToken = this.usersService.login(user.id);
         return { accessToken };
       }
     } catch (error) {
