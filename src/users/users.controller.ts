@@ -14,7 +14,11 @@ export class UsersController {
 
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.createUser(createUserDto);
+    try {
+      return this.usersService.createUser(createUserDto);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   @Post('login')
@@ -48,7 +52,7 @@ export class UsersController {
         this.configService.get('JWT_REFRESH_SECRET'),
       );
       console.log(decoded);
-      const user = await this.usersService.findOneById(+decoded);
+      const user = await this.usersService.findOneByEmail(decoded as any);
       if (user) {
         const accessToken = this.usersService.generateAccessToken(user.id);
         return { accessToken };

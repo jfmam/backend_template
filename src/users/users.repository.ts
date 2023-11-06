@@ -1,5 +1,3 @@
-// src/users/user.repository.ts
-
 import { Injectable } from '@nestjs/common';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
@@ -7,16 +5,20 @@ import {
   GetCommand,
   PutCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { ConfigService } from '@nestjs/config';
 
 import { CreateUserDto, UserDto } from './users.dto';
 
 @Injectable()
 export class UserRepository {
   private readonly DB: DynamoDBDocumentClient;
-  private readonly tableName = 'users';
+  private readonly tableName = 'Users';
 
-  constructor() {
-    const client = new DynamoDBClient({});
+  constructor(private readonly configService: ConfigService) {
+    const client = new DynamoDBClient({
+      endpoint: this.configService.get('AWS_ENDPOINT'),
+      region: this.configService.get('AWS_REGION'),
+    });
     this.DB = DynamoDBDocumentClient.from(client);
   }
 
@@ -27,27 +29,10 @@ export class UserRepository {
     });
     try {
       const result = await this.DB.send(command);
-      console.log(result);
+
       return result;
     } catch (error) {
       throw new Error(`Could not create user: ${error.message}`);
-    }
-  }
-
-  async findOneById(id: number): Promise<UserDto> {
-    const command = new GetCommand({
-      TableName: this.tableName,
-      Key: {
-        id,
-      },
-    });
-
-    try {
-      const result = await this.DB.send(command);
-      console.log(result);
-      return result[0] as UserDto;
-    } catch (error) {
-      throw new Error(`Could not retrieve users: ${error.message}`);
     }
   }
 
@@ -62,7 +47,7 @@ export class UserRepository {
     try {
       const result = await this.DB.send(command);
 
-      return result[0] as UserDto;
+      return result.Item as UserDto;
     } catch (error) {
       throw new Error(`Could not retrieve users: ${error.message}`);
     }

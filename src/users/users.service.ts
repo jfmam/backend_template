@@ -22,10 +22,6 @@ export class UsersService {
     });
   }
 
-  findOneById(id: number): Promise<UserDto> {
-    return this.userRepository.findOneById(id);
-  }
-
   findOneByEmail(email: string): Promise<UserDto> {
     return this.userRepository.findOneByEmail(email);
   }
