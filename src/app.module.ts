@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
-import { ConfigModule } from '@nestjs/config';
+import { ChallengeModule } from './challenges/challenges.module';
 
 @Module({
-  imports: [UsersModule, ConfigModule.forRoot()],
+  imports: [UsersModule, ChallengeModule, ConfigModule.forRoot()],
   controllers: [AppController],
   providers: [AppService],
 })
