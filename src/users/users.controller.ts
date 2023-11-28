@@ -6,43 +6,35 @@ import {
   Get,
   Request,
   UseGuards,
-  Response,
+  Delete,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import jwt from 'jsonwebtoken';
-import { Response as Res } from 'express';
+import { Request as Req } from 'express';
 
 import { CreateUserDto, LoginUserDto } from './users.dto';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from './auth.guard';
+import { AuthGuard } from './auth.guard';
 
 @Controller('users')
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private usersService: UsersService) {}
 
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
     try {
-      return this.usersService.createUser(createUserDto);
+      return await this.usersService.createUser(createUserDto);
     } catch (e) {
-      console.error(e);
+      return { message: 'Failed create user' };
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard)
   @Get('profile')
-  getProfile(@Request() req) {
+  getProfile(@Request() req: Req) {
     return req.user;
   }
 
   @Post('login')
-  async login(
-    @Body() { email, password }: LoginUserDto,
-    @Response({ passthrough: true }) res: Res,
-  ) {
+  async login(@Body() { email, password }: LoginUserDto) {
     try {
       const user = await this.usersService.findOneByEmail(email);
       const isCorrect = await this.usersService.comparePassword(
@@ -54,38 +46,32 @@ export class UsersController {
         throw new UnauthorizedException();
       }
 
-      const accessToken = this.usersService.login(user.id);
-      const refreshToken = this.usersService.generateRefreshToken(user.id);
-      res.cookie('rt', refreshToken, {
-        ...(this.configService.get('nodeEnv') === 'production' && {
-          httpOnly: true,
-          secure: true,
-        }),
-      });
-      return { accessToken, refreshToken };
+      const accessToken = this.usersService.login(user.email);
+      return { token: accessToken };
     } catch (e) {
       return { message: 'Invalid credentials' };
     }
   }
 
-  @Post('refresh-token')
-  async refreshAccessToken(@Body() body: { refreshToken: string }) {
-    const { refreshToken } = body;
-
+  @Post('forgot-password')
+  async findPassword(@Body('email') email: string) {
     try {
-      const decoded = jwt.verify(
-        refreshToken,
-        this.configService.get('JWT_REFRESH_SECRET'),
-      );
-      console.log(decoded);
-      const user = await this.usersService.findOneByEmail(decoded as any);
+      await this.usersService.sendPasswordResetEmail(email);
+    } catch (e) {
+      return { message: 'Invalid Email' };
+    }
+  }
 
-      if (user) {
-        const accessToken = this.usersService.login(user.id);
-        return { accessToken };
-      }
-    } catch (error) {
-      return { message: 'Invalid refresh token' };
+  @UseGuards(AuthGuard)
+  @Delete()
+  async deleteUser(@Request() req: Req) {
+    try {
+      const email = req.user.email;
+      await this.usersService.sendPasswordResetEmail(email);
+
+      return { message: 'Success resign user' };
+    } catch (e) {
+      return { message: 'Invalid Email' };
     }
   }
 }

@@ -20,8 +20,8 @@ export class LoginUserDto {
   readonly password: string;
 }
 
-export class UserDto {
-  readonly id: number;
+export class UserOutput {
+  readonly id: string;
   readonly name: string;
   readonly email: string;
   readonly password: string;

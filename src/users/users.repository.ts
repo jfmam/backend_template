@@ -4,10 +4,12 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  DeleteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { ConfigService } from '@nestjs/config';
 
-import { CreateUserDto, UserDto } from './users.dto';
+import { CreateUserDto, UserOutput } from './users.dto';
+import { generateRandomId } from 'src/utils';
 
 @Injectable()
 export class UserRepository {
@@ -23,9 +25,13 @@ export class UserRepository {
   }
 
   async createUser(createUserDto: CreateUserDto) {
+    const id = generateRandomId();
     const command = new PutCommand({
       TableName: this.tableName,
-      Item: createUserDto,
+      Item: {
+        ...createUserDto,
+        id,
+      },
     });
     try {
       const result = await this.DB.send(command);
@@ -36,7 +42,7 @@ export class UserRepository {
     }
   }
 
-  async findOneByEmail(email: string): Promise<UserDto> {
+  async findOneByEmail(email: string): Promise<UserOutput> {
     const command = new GetCommand({
       TableName: this.tableName,
       Key: {
@@ -47,7 +53,23 @@ export class UserRepository {
     try {
       const result = await this.DB.send(command);
 
-      return result.Item as UserDto;
+      return result.Item as UserOutput;
+    } catch (error) {
+      throw new Error(`Could not retrieve users: ${error.message}`);
+    }
+  }
+  async deleteUser(email: string) {
+    const command = new DeleteCommand({
+      TableName: this.tableName,
+      Key: {
+        email,
+      },
+    });
+
+    try {
+      const result = await this.DB.send(command);
+
+      return result;
     } catch (error) {
       throw new Error(`Could not retrieve users: ${error.message}`);
     }
