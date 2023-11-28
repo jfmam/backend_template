@@ -4,9 +4,26 @@ export class ChallengeDto {
   readonly goal: string;
   readonly actionDay: string[];
   readonly badge: string;
-  readonly completedRatio: number;
+  // readonly completedRatio: number;
+  readonly completeCount: number;
   readonly startDate: string;
   readonly endDate: string;
+}
+
+export class ChallengeInputMapper {
+  readonly id: string;
+  readonly userId: string;
+  readonly name: string;
+  readonly type: string;
+  readonly goal: string;
+  readonly actionDay: string[];
+  readonly badge: string;
+
+  readonly completeCount: number;
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly completeStatus: Array<{ [key: string]: boolean }>;
+  readonly totalDays: number;
 }
 
 export class ChallengeOutput {
@@ -16,7 +33,15 @@ export class ChallengeOutput {
   readonly goal: string;
   readonly actionDay: string[];
   readonly badge: string;
-  readonly completedRatio: number;
+
+  readonly completeCount: number;
   readonly startDate: Date;
   readonly endDate: Date;
+  readonly completeStatus: { [key: string]: boolean };
+  readonly totalDays: number;
+  // readonly dailyProgressRatio: number;
+}
+
+export class ChallengeToggleDto {
+  readonly status: boolean;
 }

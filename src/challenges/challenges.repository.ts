@@ -5,11 +5,12 @@ import {
   QueryCommand,
   ScanCommand,
   DynamoDBDocumentClient,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { randomBytes } from 'crypto';
-
-import { ChallengeDto } from './challenges.dto';
 import { ConfigService } from '@nestjs/config';
+
+import { getDate, getKoreanDayOfWeek } from '../utils';
+import { ChallengeInputMapper } from './challenges.dto';
 
 @Injectable()
 export class ChallengeRepository {
@@ -24,26 +25,10 @@ export class ChallengeRepository {
     this.dbClient = DynamoDBDocumentClient.from(client);
   }
 
-  generateRandomString(): string {
-    return randomBytes(10).toString('hex');
-  }
-
-  async createChallenge(challengeDto: ChallengeDto) {
-    const id = this.generateRandomString();
-
+  async createChallenge(challengeInputMapper: ChallengeInputMapper) {
     const command = new PutCommand({
       TableName: this.tableName,
-      Item: {
-        id,
-        name: challengeDto.name,
-        type: challengeDto.type,
-        goal: challengeDto.goal,
-        actionDay: challengeDto.actionDay,
-        badge: challengeDto.badge,
-        completedRatio: challengeDto.completedRatio,
-        startDate: challengeDto.startDate,
-        endDate: challengeDto.endDate,
-      },
+      Item: challengeInputMapper,
     });
 
     try {
@@ -62,9 +47,11 @@ export class ChallengeRepository {
 
     const scanCommand = new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'startDate <= :today AND endDate >= :today',
+      FilterExpression:
+        'startDate <= :today AND endDate >= :today AND contains(actionDay, :todayDayOfWeek)',
       ExpressionAttributeValues: {
         ':today': today,
+        ':todayDayOfWeek': getKoreanDayOfWeek(),
       },
       Limit: limit,
       ExclusiveStartKey: lastEvaluatedKey,
@@ -88,13 +75,7 @@ export class ChallengeRepository {
   ) {
     const scanCommand = new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: '#complete_ratio = :ratio',
-      ExpressionAttributeNames: {
-        '#complete_ratio': 'completeRatio',
-      },
-      ExpressionAttributeValues: {
-        ':ratio': { N: '100' },
-      },
+      FilterExpression: 'totalDays = completeCount',
       Limit: limit,
       ExclusiveStartKey: lastEvaluatedKey,
     });
@@ -122,7 +103,7 @@ export class ChallengeRepository {
         '#end_date': 'endDate',
       },
       ExpressionAttributeValues: {
-        ':today': { S: new Date().toISOString().split('T')[0] },
+        ':today': getDate(),
       },
       ScanIndexForward: false,
       Limit: limit,
@@ -137,6 +118,32 @@ export class ChallengeRepository {
       };
     } catch (error) {
       throw new Error(`Could not retrieve achievements: ${error.message}`);
+    }
+  }
+
+  async updateChallengeStatus(challengeId: string, status: boolean) {
+    const params = {
+      TableName: this.tableName,
+      Key: {
+        id: challengeId,
+      },
+      UpdateExpression:
+        'SET completeStatus.#date = :value, ADD completeCount :val',
+      ExpressionAttributeNames: {
+        '#date': getDate(),
+      },
+      ExpressionAttributeValues: {
+        ':value': status,
+        ':val': status ? 1 : -1,
+      },
+    };
+
+    try {
+      const command = new UpdateCommand(params);
+      const result = await this.dbClient.send(command);
+      console.log('UpdateItem succeeded:', result);
+    } catch (error) {
+      console.error('Error updating item:', error);
     }
   }
 }
