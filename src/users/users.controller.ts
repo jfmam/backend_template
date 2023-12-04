@@ -7,6 +7,7 @@ import {
   Request,
   UseGuards,
   Delete,
+  HttpCode
 } from '@nestjs/common';
 import { Request as Req } from 'express';
 
@@ -27,6 +28,7 @@ export class UsersController {
     }
   }
 
+  @HttpCode(200)
   @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Request() req: Req) {
