@@ -16,12 +16,13 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
-    if (!token) {
-      throw new UnauthorizedException();
-    }
     try {
+      const request = context.switchToHttp().getRequest();
+      const token = this.extractTokenFromHeader(request);
+      if (!token) {
+        throw new UnauthorizedException();
+      }
+
       const payload = await this.jwtService.verifyAsync(token);
       const user = await this.usersService.findOneByEmail(payload.email);
 
@@ -30,10 +31,11 @@ export class AuthGuard implements CanActivate {
       }
 
       request['user'] = user;
+      return true;
     } catch (e) {
+      console.error(e);
       throw new UnauthorizedException();
     }
-    return true;
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

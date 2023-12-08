@@ -19,7 +19,7 @@ import { AuthGuard } from 'src/users/auth.guard';
 export class ChallengeController {
   constructor(private readonly challengeService: ChallengeService) {}
 
-  // @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   @Post()
   async createChallenge(
     @Body() challengeDto: ChallengeDto,
@@ -33,7 +33,7 @@ export class ChallengeController {
     }
   }
 
-  // @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   @Get()
   async getChallenges(
     @Query('limit') limit: number = 5,
@@ -46,7 +46,7 @@ export class ChallengeController {
     }
   }
 
-  // @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   @Get('my-achievements')
   async getMyAchievement(
     @Query('limit') limit: number = 9,
@@ -59,7 +59,7 @@ export class ChallengeController {
     }
   }
 
-  // @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   @Get('achievements')
   async getAchievement(
     @Query('limit') limit: number = 5,
@@ -72,7 +72,7 @@ export class ChallengeController {
     }
   }
 
-  // @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   @Patch('/:challengeId/toggle')
   async toggleChallenge(
     @Body() challengeToggleDto: ChallengeToggleDto,
