@@ -35,8 +35,8 @@ export class ChallengeOutput {
   readonly badge: string;
 
   readonly completeCount: number;
-  readonly startDate: Date;
-  readonly endDate: Date;
+  readonly startDate: string;
+  readonly endDate: string;
   readonly completeStatus: { [key: string]: boolean };
   readonly totalDays: number;
   // readonly dailyProgressRatio: number;
@@ -44,4 +44,10 @@ export class ChallengeOutput {
 
 export class ChallengeToggleDto {
   readonly status: boolean;
+}
+
+export class Pagination {
+  limit: number;
+  userId: string;
+  lastKey?: string;
 }

@@ -1,17 +1,17 @@
-import { eachDayOfInterval, parse, getDay } from 'date-fns';
+import { eachDayOfInterval, getDay } from 'date-fns';
 
 export function createStartDate(startDate: string) {
   const date = new Date(startDate);
   date.setHours(0, 0, 0, 0);
 
-  return date;
+  return date.toISOString();
 }
 
 export function createEndDate(endDate: string) {
   const date = new Date(endDate);
   date.setHours(23, 59, 59, 59);
 
-  return date;
+  return date.toISOString();
 }
 
 export function getKoreanDayOfWeek(): string {
@@ -44,8 +44,6 @@ export function getTotalDays(
   endDate: string,
   actionDays: string[],
 ) {
-  const parsedStartDate = parse(startDate, 'yyyy-MM-dd', new Date());
-  const parsedEndDate = parse(endDate, 'yyyy-MM-dd', new Date());
   const mapper = {
     일: 0,
     월: 1,
@@ -56,8 +54,8 @@ export function getTotalDays(
     토: 6,
   };
   const allDates = eachDayOfInterval({
-    start: parsedStartDate,
-    end: parsedEndDate,
+    start: new Date(startDate),
+    end: new Date(endDate),
   });
 
   const actionDaysNumber: number[] = actionDays.map((v) => mapper[v]);

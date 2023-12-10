@@ -1,22 +1,30 @@
 import { Injectable } from '@nestjs/common';
 
-import { generateRandomId, getDate, getTotalDays } from '../utils';
+import {
+  createEndDate,
+  createStartDate,
+  generateRandomId,
+  getDate,
+  getTotalDays,
+} from '../utils';
 
 import { ChallengeRepository } from './challenges.repository';
-import { ChallengeDto, ChallengeInputMapper } from './challenges.dto';
+import {
+  ChallengeDto,
+  ChallengeInputMapper,
+  Pagination,
+} from './challenges.dto';
 
 @Injectable()
 export class ChallengeService {
   constructor(private readonly challengesRepository: ChallengeRepository) {}
 
   async createChallenge(challengeDto: ChallengeDto, userId: string) {
-    const startDay = getDate(challengeDto.startDate);
+    const startDate = createStartDate(challengeDto.startDate);
+    const endDate = createEndDate(challengeDto.endDate);
+    const startDay = getDate(startDate);
     const completeStatus = [{ [startDay]: false }];
-    const totalDays = getTotalDays(
-      challengeDto.startDate,
-      challengeDto.endDate,
-      challengeDto.actionDay,
-    );
+    const totalDays = getTotalDays(startDate, endDate, challengeDto.actionDay);
     const id = generateRandomId();
     const challengeInputMapper: ChallengeInputMapper = {
       ...challengeDto,
@@ -25,20 +33,22 @@ export class ChallengeService {
       completeStatus,
       totalDays,
       completeCount: 0,
+      startDate,
+      endDate,
     };
     return this.challengesRepository.createChallenge(challengeInputMapper);
   }
 
-  async getChallenges(limit: number, lastKey: Record<string, string>) {
-    return this.challengesRepository.getChallenges(limit, lastKey);
+  async getChallenges(pagination: Pagination) {
+    return this.challengesRepository.getChallenges(pagination);
   }
 
-  async getMyAchievements(limit: number, lastKey: Record<string, string>) {
-    return this.challengesRepository.getMyAchievements(limit, lastKey);
+  async getMyAchievements(pagination: Pagination) {
+    return this.challengesRepository.getMyAchievements(pagination);
   }
 
-  async getAchievements(limit: number, lastKey: Record<string, string>) {
-    return this.challengesRepository.getChallenges(limit, lastKey);
+  async getAchievements(pagination: Pagination) {
+    return this.challengesRepository.getAchievements(pagination);
   }
 
   async updateChallengeStatus(challengeId: string, status: boolean) {

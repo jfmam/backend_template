@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   PutCommand,
-  QueryCommand,
   ScanCommand,
   DynamoDBDocumentClient,
   UpdateCommand,
@@ -10,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 
 import { getDate, getKoreanDayOfWeek } from '../utils';
-import { ChallengeInputMapper } from './challenges.dto';
+import { ChallengeInputMapper, Pagination } from './challenges.dto';
 
 @Injectable()
 export class ChallengeRepository {
@@ -33,28 +32,26 @@ export class ChallengeRepository {
 
     try {
       const response = await this.dbClient.send(command);
+
       return response;
     } catch (error) {
       throw new Error(`Could not create challenge: ${error.message}`);
     }
   }
 
-  async getChallenges(
-    limit: number,
-    lastEvaluatedKey?: Record<string, string>,
-  ) {
+  async getChallenges({ limit, lastKey, userId }: Pagination) {
     const today = new Date().toISOString();
-
     const scanCommand = new ScanCommand({
       TableName: this.tableName,
       FilterExpression:
-        'startDate <= :today AND endDate >= :today AND contains(actionDay, :todayDayOfWeek)',
+        'startDate <= :today AND endDate >= :today AND contains(actionDay, :todayDayOfWeek) AND userId = :userId',
       ExpressionAttributeValues: {
         ':today': today,
         ':todayDayOfWeek': getKoreanDayOfWeek(),
+        ':userId': userId,
       },
       Limit: limit,
-      ExclusiveStartKey: lastEvaluatedKey,
+      ExclusiveStartKey: lastKey ? { id: lastKey } : undefined,
     });
 
     try {
@@ -62,22 +59,22 @@ export class ChallengeRepository {
 
       return {
         items: response.Items,
-        lastEvaluatedKey: response.LastEvaluatedKey,
+        lastKey: response.LastEvaluatedKey?.id,
       };
     } catch (error) {
       throw new Error(`Could not retrieve challenges: ${error.message}`);
     }
   }
 
-  async getMyAchievements(
-    limit: number,
-    lastEvaluatedKey?: Record<string, string>,
-  ) {
+  async getMyAchievements({ limit, lastKey, userId }: Pagination) {
     const scanCommand = new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'totalDays = completeCount',
+      FilterExpression: 'totalDays = completeCount AND userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': userId,
+      },
       Limit: limit,
-      ExclusiveStartKey: lastEvaluatedKey,
+      ExclusiveStartKey: lastKey ? { id: lastKey } : undefined,
     });
 
     try {
@@ -91,30 +88,24 @@ export class ChallengeRepository {
     }
   }
 
-  async getAchievements(
-    limit: number,
-    lastEvaluatedKey?: Record<string, string>,
-  ) {
-    const queryCommand = new QueryCommand({
+  async getAchievements({ limit, lastKey, userId }: Pagination) {
+    const scanCommand = new ScanCommand({
       TableName: this.tableName,
-      IndexName: 'EndDateIndex',
-      KeyConditionExpression: '#end_date > :today',
-      ExpressionAttributeNames: {
-        '#end_date': 'endDate',
-      },
+      FilterExpression: 'endDate >= :today AND userId = :userId',
       ExpressionAttributeValues: {
-        ':today': getDate(),
+        ':today': new Date().toISOString(),
+        ':userId': userId,
       },
-      ScanIndexForward: false,
       Limit: limit,
-      ExclusiveStartKey: lastEvaluatedKey,
+      ExclusiveStartKey: lastKey ? { id: lastKey } : undefined,
     });
 
     try {
-      const response = await this.dbClient.send(queryCommand);
+      const response = await this.dbClient.send(scanCommand);
+      console.log(response);
       return {
         items: response.Items,
-        lastEvaluatedKey: response.LastEvaluatedKey,
+        lastEvaluatedKey: response.LastEvaluatedKey.id,
       };
     } catch (error) {
       throw new Error(`Could not retrieve achievements: ${error.message}`);

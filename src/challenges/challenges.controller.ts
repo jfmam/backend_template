@@ -37,10 +37,13 @@ export class ChallengeController {
   @Get()
   async getChallenges(
     @Query('limit') limit: number = 5,
-    @Query('lastKey') lastKey: Record<string, string>,
+    @Query('lastKey') lastKey: string,
+    @Request() req: Req,
   ) {
     try {
-      return this.challengeService.getChallenges(limit, lastKey);
+      const userId = req.user.id;
+
+      return this.challengeService.getChallenges({ limit, lastKey, userId });
     } catch (e) {
       console.error(e);
     }
@@ -50,10 +53,16 @@ export class ChallengeController {
   @Get('my-achievements')
   async getMyAchievement(
     @Query('limit') limit: number = 9,
-    @Query('lastKey') lastKey: Record<string, string>,
+    @Query('lastKey') lastKey: string,
+    @Request() req: Req,
   ) {
     try {
-      return this.challengeService.getMyAchievements(limit, lastKey);
+      const userId = req.user.id;
+      return this.challengeService.getMyAchievements({
+        limit,
+        lastKey,
+        userId,
+      });
     } catch (e) {
       console.error(e);
     }
@@ -63,10 +72,13 @@ export class ChallengeController {
   @Get('achievements')
   async getAchievement(
     @Query('limit') limit: number = 5,
-    @Query('lastKey') lastKey: Record<string, string>,
+    @Query('lastKey') lastKey: string,
+    @Request() req: Req,
   ) {
     try {
-      return this.challengeService.getAchievements(limit, lastKey);
+      const userId = req.user.id;
+
+      return this.challengeService.getAchievements({ limit, lastKey, userId });
     } catch (e) {
       console.error(e);
     }
