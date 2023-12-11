@@ -38,6 +38,19 @@ export class ChallengeOutput {
   readonly totalDays: number;
 }
 
+export class AchievementOutput {
+  readonly id: string;
+  readonly name: string;
+  readonly type: string;
+  readonly goal: string;
+  readonly actionDay: string[];
+  readonly badge: string;
+  readonly completeRatio: number;
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly totalDays: number;
+}
+
 export class ChallengeOutputMapper {
   readonly id: string;
   readonly name: string;

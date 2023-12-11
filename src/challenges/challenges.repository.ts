@@ -91,7 +91,7 @@ export class ChallengeRepository {
     try {
       const response = await this.dbClient.send(scanCommand);
       return {
-        items: response.Items,
+        items: response.Items as ChallengeOutputMapper[],
         lastEvaluatedKey: response.LastEvaluatedKey,
       };
     } catch (error) {
@@ -100,7 +100,7 @@ export class ChallengeRepository {
   }
 
   async getAchievements({ limit, lastKey, userId }: Pagination) {
-    const scanCommand = new QueryCommand({
+    const queryCommand = new QueryCommand({
       TableName: this.tableName,
       IndexName: 'userIdIndex',
       KeyConditionExpression: 'userId = :userId',
@@ -115,11 +115,11 @@ export class ChallengeRepository {
     });
 
     try {
-      const response = await this.dbClient.send(scanCommand);
+      const response = await this.dbClient.send(queryCommand);
 
       return {
-        items: response.Items,
-        lastEvaluatedKey: response.LastEvaluatedKey.id,
+        items: response.Items as ChallengeOutputMapper[],
+        lastEvaluatedKey: response.LastEvaluatedKey,
       };
     } catch (error) {
       throw new Error(`Could not retrieve achievements: ${error.message}`);

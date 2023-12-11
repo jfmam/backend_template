@@ -4,12 +4,12 @@ import {
   createEndDate,
   createStartDate,
   generateRandomId,
-  getDate,
   getTotalDays,
 } from '../utils';
 
 import { ChallengeRepository } from './challenges.repository';
 import {
+  AchievementOutput,
   ChallengeDto,
   ChallengeInputMapper,
   ChallengeOutput,
@@ -24,19 +24,17 @@ export class ChallengeService {
   async createChallenge(challengeDto: ChallengeDto, userId: string) {
     const startDate = createStartDate(challengeDto.startDate);
     const endDate = createEndDate(challengeDto.endDate);
-    const startDay = getDate(startDate);
-    const completeStatus = { [startDay]: false };
     const totalDays = getTotalDays(startDate, endDate, challengeDto.actionDay);
     const id = generateRandomId();
     const challengeInputMapper: ChallengeInputMapper = {
       ...challengeDto,
       id,
       userId,
-      completeStatus,
       totalDays,
       completeCount: 0,
       startDate,
       endDate,
+      completeStatus: {},
     };
     return this.challengesRepository.createChallenge(challengeInputMapper);
   }
@@ -47,7 +45,7 @@ export class ChallengeService {
     const today = new Date().toISOString().split('T')[0];
     const result: ChallengeOutput[] = items.map((v) => ({
       ...v,
-      todayCompleteStatus: v.completeStatus[today],
+      todayCompleteStatus: v.completeStatus?.[today] || false,
       completeStatus: undefined,
     }));
 
@@ -58,11 +56,47 @@ export class ChallengeService {
   }
 
   async getMyAchievements(pagination: Pagination) {
-    return this.challengesRepository.getMyAchievements(pagination);
+    const { items, ...rest } =
+      await this.challengesRepository.getMyAchievements(pagination);
+
+    const achievements: AchievementOutput[] = items.map((v) => {
+      const completeCount = Object.values(v?.completeStatus || {}).filter(
+        (status) => status,
+      ).length;
+      return {
+        ...v,
+        completeRatio: Math.floor(completeCount / v.totalDays),
+        completeCount: undefined,
+        completeStatus: undefined,
+      };
+    });
+
+    return {
+      ...rest,
+      items: achievements,
+    };
   }
 
   async getAchievements(pagination: Pagination) {
-    return this.challengesRepository.getAchievements(pagination);
+    const { items, ...rest } =
+      await this.challengesRepository.getAchievements(pagination);
+
+    const achievements: AchievementOutput[] = items.map((v) => {
+      const completeCount = Object.values(v.completeStatus).filter(
+        (status) => status,
+      ).length;
+      return {
+        ...v,
+        completeRatio: Math.floor((completeCount / v.totalDays) * 100),
+        completeCount: undefined,
+        completeStatus: undefined,
+      };
+    });
+
+    return {
+      ...rest,
+      items: achievements,
+    };
   }
 
   async updateChallengeStatus(challengeToggleDto: ChallengeToggleDto) {
