@@ -29,7 +29,7 @@ export class ChallengeController {
       const userId = req.user.id;
       return this.challengeService.createChallenge(challengeDto, userId);
     } catch (e) {
-      console.error(e);
+      return { message: 'Failed create challenge' };
     }
   }
 
@@ -45,7 +45,7 @@ export class ChallengeController {
 
       return this.challengeService.getChallenges({ limit, lastKey, userId });
     } catch (e) {
-      console.error(e);
+      return { message: 'Failed retrieve challenges' };
     }
   }
 
@@ -64,7 +64,7 @@ export class ChallengeController {
         userId,
       });
     } catch (e) {
-      console.error(e);
+      return { message: 'Failed retrieve my achievements' };
     }
   }
 
@@ -80,7 +80,7 @@ export class ChallengeController {
 
       return this.challengeService.getAchievements({ limit, lastKey, userId });
     } catch (e) {
-      console.error(e);
+      return { message: 'Failed retrieve achievements' };
     }
   }
 
@@ -100,7 +100,7 @@ export class ChallengeController {
         userId,
       });
     } catch (e) {
-      console.error(e);
+      return { message: 'Failed update challenge status' };
     }
   }
 }
