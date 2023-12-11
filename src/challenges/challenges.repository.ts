@@ -135,13 +135,15 @@ export class ChallengeRepository {
         id,
         userId,
       },
-      UpdateExpression: 'SET #cs.#date = :value',
+      UpdateExpression: 'SET #cs.#date = :value, #c = #c + :count ',
       ExpressionAttributeNames: {
         '#cs': 'completeStatus',
         '#date': today,
+        '#c': 'completeCount',
       },
       ExpressionAttributeValues: {
         ':value': status,
+        ':count': status ? 1 : -1,
       },
     };
     try {

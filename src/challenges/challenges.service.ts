@@ -59,21 +59,16 @@ export class ChallengeService {
     const { items, ...rest } =
       await this.challengesRepository.getMyAchievements(pagination);
 
-    const achievements: AchievementOutput[] = items.map((v) => {
-      const completeCount = Object.values(v?.completeStatus || {}).filter(
-        (status) => status,
-      ).length;
+    const myAchievements: AchievementOutput[] = items.map((v) => {
       return {
         ...v,
-        completeRatio: Math.floor(completeCount / v.totalDays),
-        completeCount: undefined,
-        completeStatus: undefined,
+        completeRatio: 100,
       };
     });
 
     return {
       ...rest,
-      items: achievements,
+      items: myAchievements,
     };
   }
 
