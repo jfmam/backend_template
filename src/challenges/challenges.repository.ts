@@ -2,14 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   PutCommand,
-  ScanCommand,
   DynamoDBDocumentClient,
   UpdateCommand,
+  QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { ConfigService } from '@nestjs/config';
 
-import { getDate, getKoreanDayOfWeek } from '../utils';
-import { ChallengeInputMapper, Pagination } from './challenges.dto';
+import { getKoreanDayOfWeek } from '../utils';
+import {
+  ChallengeInputMapper,
+  ChallengeOutputMapper,
+  ChallengeToggleDto,
+  Pagination,
+} from './challenges.dto';
 
 @Injectable()
 export class ChallengeRepository {
@@ -41,24 +46,27 @@ export class ChallengeRepository {
 
   async getChallenges({ limit, lastKey, userId }: Pagination) {
     const today = new Date().toISOString();
-    const scanCommand = new ScanCommand({
+    const scanCommand = new QueryCommand({
       TableName: this.tableName,
+      IndexName: 'userIdIndex',
+      KeyConditionExpression: 'userId = :userId',
       FilterExpression:
-        'startDate <= :today AND endDate >= :today AND contains(actionDay, :todayDayOfWeek) AND userId = :userId',
+        'startDate <= :today AND endDate >= :today AND contains(actionDay, :todayDayOfWeek)',
       ExpressionAttributeValues: {
         ':today': today,
         ':todayDayOfWeek': getKoreanDayOfWeek(),
         ':userId': userId,
       },
       Limit: limit,
-      ExclusiveStartKey: lastKey ? { id: lastKey } : undefined,
+      ScanIndexForward: false, // 역순으로 가져오도록 설정
+      ExclusiveStartKey: lastKey ? { id: lastKey, userId } : undefined,
     });
 
     try {
       const response = await this.dbClient.send(scanCommand);
 
       return {
-        items: response.Items,
+        items: response.Items as ChallengeOutputMapper[],
         lastKey: response.LastEvaluatedKey?.id,
       };
     } catch (error) {
@@ -67,14 +75,17 @@ export class ChallengeRepository {
   }
 
   async getMyAchievements({ limit, lastKey, userId }: Pagination) {
-    const scanCommand = new ScanCommand({
+    const scanCommand = new QueryCommand({
       TableName: this.tableName,
-      FilterExpression: 'totalDays = completeCount AND userId = :userId',
+      IndexName: 'userIdIndex',
+      KeyConditionExpression: 'userId = :userId',
+      FilterExpression: 'totalDays = completeCount',
       ExpressionAttributeValues: {
         ':userId': userId,
       },
       Limit: limit,
-      ExclusiveStartKey: lastKey ? { id: lastKey } : undefined,
+      ScanIndexForward: false,
+      ExclusiveStartKey: lastKey ? { id: lastKey, userId } : undefined,
     });
 
     try {
@@ -89,20 +100,23 @@ export class ChallengeRepository {
   }
 
   async getAchievements({ limit, lastKey, userId }: Pagination) {
-    const scanCommand = new ScanCommand({
+    const scanCommand = new QueryCommand({
       TableName: this.tableName,
-      FilterExpression: 'endDate >= :today AND userId = :userId',
+      IndexName: 'userIdIndex',
+      KeyConditionExpression: 'userId = :userId',
+      FilterExpression: 'endDate >= :today',
       ExpressionAttributeValues: {
         ':today': new Date().toISOString(),
         ':userId': userId,
       },
       Limit: limit,
-      ExclusiveStartKey: lastKey ? { id: lastKey } : undefined,
+      ScanIndexForward: false,
+      ExclusiveStartKey: lastKey ? { id: lastKey, userId } : undefined,
     });
 
     try {
       const response = await this.dbClient.send(scanCommand);
-      console.log(response);
+
       return {
         items: response.Items,
         lastEvaluatedKey: response.LastEvaluatedKey.id,
@@ -112,27 +126,29 @@ export class ChallengeRepository {
     }
   }
 
-  async updateChallengeStatus(challengeId: string, status: boolean) {
+  async updateChallengeStatus({ id, status, userId }: ChallengeToggleDto) {
+    const today = new Date().toISOString().split('T')[0];
+
     const params = {
       TableName: this.tableName,
       Key: {
-        id: challengeId,
+        id,
+        userId,
       },
-      UpdateExpression:
-        'SET completeStatus.#date = :value, ADD completeCount :val',
+      UpdateExpression: 'SET #cs.#date = :value',
       ExpressionAttributeNames: {
-        '#date': getDate(),
+        '#cs': 'completeStatus',
+        '#date': today,
       },
       ExpressionAttributeValues: {
         ':value': status,
-        ':val': status ? 1 : -1,
       },
     };
-
     try {
       const command = new UpdateCommand(params);
       const result = await this.dbClient.send(command);
-      console.log('UpdateItem succeeded:', result);
+
+      return result;
     } catch (error) {
       console.error('Error updating item:', error);
     }

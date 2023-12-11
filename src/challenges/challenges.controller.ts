@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Request as Req } from 'express';
 
-import { ChallengeDto, ChallengeToggleDto } from './challenges.dto';
+import { ChallengeDto } from './challenges.dto';
 import { ChallengeService } from './challenges.service';
 import { AuthGuard } from 'src/users/auth.guard';
 
@@ -87,14 +87,18 @@ export class ChallengeController {
   @UseGuards(AuthGuard)
   @Patch('/:challengeId/toggle')
   async toggleChallenge(
-    @Body() challengeToggleDto: ChallengeToggleDto,
+    @Body('status') status: boolean,
     @Param('challengeId') challengeId: string,
+    @Request() req: Req,
   ) {
     try {
-      return this.challengeService.updateChallengeStatus(
-        challengeId,
-        challengeToggleDto.status,
-      );
+      const userId = req.user.id;
+
+      return this.challengeService.updateChallengeStatus({
+        id: challengeId,
+        status,
+        userId,
+      });
     } catch (e) {
       console.error(e);
     }

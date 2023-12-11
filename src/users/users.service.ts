@@ -41,7 +41,7 @@ export class UsersService {
       payload,
       this.configService.get('JWT_REFRESH_SECRET'),
       {
-        expiresIn: '30d',
+        expiresIn: '1d',
       },
     );
 

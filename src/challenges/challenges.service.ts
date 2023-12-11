@@ -12,6 +12,8 @@ import { ChallengeRepository } from './challenges.repository';
 import {
   ChallengeDto,
   ChallengeInputMapper,
+  ChallengeOutput,
+  ChallengeToggleDto,
   Pagination,
 } from './challenges.dto';
 
@@ -23,7 +25,7 @@ export class ChallengeService {
     const startDate = createStartDate(challengeDto.startDate);
     const endDate = createEndDate(challengeDto.endDate);
     const startDay = getDate(startDate);
-    const completeStatus = [{ [startDay]: false }];
+    const completeStatus = { [startDay]: false };
     const totalDays = getTotalDays(startDate, endDate, challengeDto.actionDay);
     const id = generateRandomId();
     const challengeInputMapper: ChallengeInputMapper = {
@@ -40,7 +42,19 @@ export class ChallengeService {
   }
 
   async getChallenges(pagination: Pagination) {
-    return this.challengesRepository.getChallenges(pagination);
+    const { items, ...rest } =
+      await this.challengesRepository.getChallenges(pagination);
+    const today = new Date().toISOString().split('T')[0];
+    const result: ChallengeOutput[] = items.map((v) => ({
+      ...v,
+      todayCompleteStatus: v.completeStatus[today],
+      completeStatus: undefined,
+    }));
+
+    return {
+      ...rest,
+      items: result,
+    };
   }
 
   async getMyAchievements(pagination: Pagination) {
@@ -51,7 +65,7 @@ export class ChallengeService {
     return this.challengesRepository.getAchievements(pagination);
   }
 
-  async updateChallengeStatus(challengeId: string, status: boolean) {
-    return this.challengesRepository.updateChallengeStatus(challengeId, status);
+  async updateChallengeStatus(challengeToggleDto: ChallengeToggleDto) {
+    return this.challengesRepository.updateChallengeStatus(challengeToggleDto);
   }
 }
