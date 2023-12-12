@@ -8,6 +8,7 @@ import {
   UseGuards,
   Delete,
   HttpCode,
+  Patch,
 } from '@nestjs/common';
 import { Request as Req } from 'express';
 
@@ -51,16 +52,37 @@ export class UsersController {
       const accessToken = this.usersService.login(user.email);
       return { token: accessToken };
     } catch (e) {
-      return { message: 'Invalid credentials' };
+      return { message: e.message };
     }
   }
 
   @Post('forgot-password')
   async findPassword(@Body('email') email: string) {
     try {
-      await this.usersService.sendPasswordResetEmail(email);
+      const user = await this.usersService.findOneByEmail(email);
+
+      if (!user) throw new UnauthorizedException();
+
+      const token = this.usersService.generateAccessToken(user.email);
+      await this.usersService.sendPasswordResetEmail(email, token);
+
+      return { message: '이메일을 전송하였습니다.' };
     } catch (e) {
-      return { message: 'Invalid Email' };
+      throw e;
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('reset-password')
+  async resetPassword(@Body('password') password: string, @Request() req: Req) {
+    try {
+      const newPassword = await this.usersService.hashPassowrd(password);
+      const email = req.user.email;
+
+      await this.usersService.updatePassword(email, newPassword);
+      return { message: '패스워드 업데이트 성공 하였습니다.' };
+    } catch (e) {
+      throw e;
     }
   }
 
@@ -69,11 +91,11 @@ export class UsersController {
   async deleteUser(@Request() req: Req) {
     try {
       const email = req.user.email;
-      await this.usersService.sendPasswordResetEmail(email);
+      await this.usersService.resignUser(email);
 
       return { message: 'Success resign user' };
     } catch (e) {
-      return { message: 'Invalid Email' };
+      throw e;
     }
   }
 }

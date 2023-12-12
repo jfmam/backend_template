@@ -5,6 +5,7 @@ import {
   GetCommand,
   PutCommand,
   DeleteCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { ConfigService } from '@nestjs/config';
 
@@ -52,7 +53,6 @@ export class UserRepository {
 
     try {
       const result = await this.DB.send(command);
-
       return result.Item as UserOutput;
     } catch (error) {
       throw new Error(`Could not retrieve users: ${error.message}`);
@@ -72,6 +72,30 @@ export class UserRepository {
       return result;
     } catch (error) {
       throw new Error(`Could not retrieve users: ${error.message}`);
+    }
+  }
+
+  async updatePassword(email: string, newPassword: string) {
+    const params = {
+      TableName: this.tableName,
+      Key: {
+        email,
+      },
+      UpdateExpression: 'SET #key = :value',
+      ExpressionAttributeNames: {
+        '#key': 'password',
+      },
+      ExpressionAttributeValues: {
+        ':value': newPassword,
+      },
+    };
+    try {
+      const command = new UpdateCommand(params);
+      const result = await this.DB.send(command);
+
+      return result;
+    } catch (error) {
+      console.error('Error updating item:', error);
     }
   }
 }

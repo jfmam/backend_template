@@ -4,6 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
+import ejs from 'ejs';
+import { resolve } from 'path';
 
 import { UserRepository } from './users.repository';
 import { CreateUserDto, UserOutput } from './users.dto';
@@ -30,7 +32,13 @@ export class UsersService {
   }
 
   login(email: string) {
-    const token = this.jwtService.sign({ email }, { expiresIn: '15m' });
+    const token = this.jwtService.sign({ email }, { expiresIn: '1d' });
+
+    return token;
+  }
+
+  generateAccessToken(email: string) {
+    const token = this.jwtService.sign({ email }, { expiresIn: '30m' });
 
     return token;
   }
@@ -81,25 +89,49 @@ export class UsersService {
     return { email: user.email, name: user.name };
   }
 
-  async sendPasswordResetEmail(userEmail: string): Promise<string> {
+  async sendPasswordResetEmail(
+    userEmail: string,
+    token: string,
+  ): Promise<string> {
     try {
       const transporter = nodemailer.createTransport({
         service: 'Gmail',
         auth: {
-          user: 'your_email@gmail.com', // Gmail 계정
-          pass: 'your_password', // Gmail 암호
+          user: this.configService.get('NODEMAILER_ID'),
+          pass: this.configService.get('NODEMAILER_PW'),
         },
       });
 
       const mailOptions = {
-        from: 'no-reply@gmail.com',
+        from: 'WESAVE <no-reply@gmail.com>',
         to: userEmail,
-        subject: '패스워드 초기화 요청',
-        text: '패스워드 초기화 링크를 전송합니다.', // 본문 내용
-        // HTML을 사용할 경우:
-        // html: '<p>패스워드 초기화 링크를 전송합니다.</p>'
+        subject: '[WESAVE] 패스워드 초기화 요청',
+        html: await ejs.renderFile(
+          resolve('src/views/email.ejs'),
+          {
+            link: `${this.configService.get(
+              'PROTOCOL',
+            )}://${this.configService.get(
+              'DOMAIN',
+            )}/reset-password?token=${token}`,
+          },
+          {
+            async: true,
+          },
+        ),
+        attachments: [
+          {
+            filename: 'wesave.png',
+            path: resolve(`src/public/wesave.png`),
+            cid: 'wesave',
+          },
+          {
+            filename: 'wesaver.png',
+            path: resolve('src/public/wesaver.png'),
+            cid: 'wesaver',
+          },
+        ],
       };
-
       await transporter.sendMail(mailOptions);
       return '이메일이 전송되었습니다. 패스워드를 초기화하세요.';
     } catch (error) {
@@ -109,5 +141,9 @@ export class UsersService {
 
   async resignUser(email: string) {
     return this.userRepository.deleteUser(email);
+  }
+
+  async updatePassword(email: string, password: string) {
+    return this.userRepository.updatePassword(email, password);
   }
 }
