@@ -12,7 +12,7 @@ export class CreateUserDto {
   @Matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, {
     message: '비밀번호는 영문자와 숫자를 포함하여야 합니다.',
   })
-  readonly password: string;
+  readonly password?: string;
 }
 
 export class LoginUserDto {
@@ -25,4 +25,13 @@ export class UserOutput {
   readonly name: string;
   readonly email: string;
   readonly password: string;
+}
+
+export class kakaoLoginOutput {
+  access_token: string;
+  token_type: 'bearer';
+  refresh_token: string;
+  expires_in: number;
+  scope: string;
+  refresh_token_expires_in: number;
 }

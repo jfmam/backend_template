@@ -98,4 +98,15 @@ export class UsersController {
       throw e;
     }
   }
+
+  @Post('kakao')
+  async kakoLogin(@Request() req: Req, @Body('code') code: string) {
+    try {
+      const token = await this.usersService.oAuthKakao(code);
+
+      return { token };
+    } catch (e) {
+      return { message: e.message, code: e.status };
+    }
+  }
 }

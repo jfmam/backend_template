@@ -8,7 +8,8 @@ import ejs from 'ejs';
 import { resolve } from 'path';
 
 import { UserRepository } from './users.repository';
-import { CreateUserDto, UserOutput } from './users.dto';
+import { CreateUserDto, UserOutput, kakaoLoginOutput } from './users.dto';
+import axios from 'axios';
 
 @Injectable()
 export class UsersService {
@@ -145,5 +146,57 @@ export class UsersService {
 
   async updatePassword(email: string, password: string) {
     return this.userRepository.updatePassword(email, password);
+  }
+
+  async oAuthKakao(code: string) {
+    const REST_API_KEY = this.configService.get('REST_API_KEY');
+    const REDIRECT_URI = this.configService.get('REDIRECT_URI');
+    const CLIENT_SECRET = this.configService.get('CLIENT_SECRET');
+    try {
+      const oAuthData = {
+        grant_type: 'authorization_code',
+        client_id: REST_API_KEY,
+        redirect_uri: REDIRECT_URI,
+        client_secret: CLIENT_SECRET,
+        code,
+      };
+      const result = await axios.post<kakaoLoginOutput>(
+        'https://kauth.kakao.com/oauth/token',
+        oAuthData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+          },
+        },
+      );
+      const { data } = await axios.post(
+        'https://kapi.kakao.com/v2/user/me',
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+            Authorization: `Bearer ${result.data.access_token}`,
+          },
+        },
+      );
+
+      const user = await this.userRepository.findOneByEmail(
+        data.kakao_account.email,
+      );
+
+      if (!user) {
+        await this.userRepository.createUser({
+          email: data.kakao_account.email,
+          name: data.kakao_account.name,
+        });
+      }
+
+      const token = this.generateAccessToken(data.kakao_account.email);
+
+      return token;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   }
 }
