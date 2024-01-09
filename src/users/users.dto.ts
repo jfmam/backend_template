@@ -35,3 +35,12 @@ export class kakaoLoginOutput {
   scope: string;
   refresh_token_expires_in: number;
 }
+
+export class NaverLoginOutput {
+  access_token: string;
+  token_type: string;
+  refresh_token: string;
+  expires_in: number;
+  error: string;
+  error_description: string;
+}

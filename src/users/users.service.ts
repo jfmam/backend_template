@@ -199,4 +199,48 @@ export class UsersService {
       throw e;
     }
   }
+
+  async oAuthNaver(code: string) {
+    const NAVER_REST_API_KEY = this.configService.get('NAVER_REST_API_KEY');
+    const NAVER_REDIRECT_URI = this.configService.get('NAVER_REDIRECT_URI');
+    const NAVER_CLIENT_SECRET = this.configService.get('NAVER_CLIENT_SECRET');
+    try {
+      const oAuthData = {
+        grant_type: 'authorization_code',
+        client_id: NAVER_REST_API_KEY,
+        redirect_uri: NAVER_REDIRECT_URI,
+        client_secret: NAVER_CLIENT_SECRET,
+        code,
+      };
+      const result = await axios.post<kakaoLoginOutput>(
+        'https://nid.naver.com/oauth2.0/token',
+        oAuthData,
+      );
+      const { data } = await axios.post(
+        'https://openapi.naver.com/v1/nid/me',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${result.data.access_token}`,
+          },
+        },
+      );
+
+      const user = await this.userRepository.findOneByEmail(data.email);
+
+      if (!user) {
+        await this.userRepository.createUser({
+          email: data.email,
+          name: data.name,
+        });
+      }
+
+      const token = this.generateAccessToken(data.email);
+
+      return token;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  }
 }

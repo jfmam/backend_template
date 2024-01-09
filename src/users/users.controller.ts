@@ -109,4 +109,15 @@ export class UsersController {
       return { message: e.message, code: e.status };
     }
   }
+
+  @Post('naver')
+  async NaverLogin(@Request() req: Req, @Body('code') code: string) {
+    try {
+      const token = await this.usersService.oAuthKakao(code);
+
+      return { token };
+    } catch (e) {
+      return { message: e.message, code: e.status };
+    }
+  }
 }
