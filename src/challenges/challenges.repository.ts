@@ -23,7 +23,16 @@ export class ChallengeRepository {
 
   constructor(private readonly configService: ConfigService) {
     const client = new DynamoDBClient({
-      endpoint: this.configService.get('AWS_ENDPOINT'),
+      ...(process.env.NODE_ENV !== 'production'
+        ? {
+            endpoint: this.configService.get('AWS_ENDPOINT'),
+          }
+        : {
+            credentials: {
+              accessKeyId: this.configService.get('ACCESS_ID'),
+              secretAccessKey: this.configService.get('ACCESS_KEY'),
+            },
+          }),
       region: this.configService.get('AWS_REGION'),
     });
     this.dbClient = DynamoDBDocumentClient.from(client);

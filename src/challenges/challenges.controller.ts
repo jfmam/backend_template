@@ -13,7 +13,7 @@ import { Request as Req } from 'express';
 
 import { ChallengeDto } from './challenges.dto';
 import { ChallengeService } from './challenges.service';
-import { AuthGuard } from 'src/users/auth.guard';
+import { AuthGuard } from '../users/auth.guard';
 
 @Controller('challenges')
 export class ChallengeController {

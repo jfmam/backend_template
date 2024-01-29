@@ -4,8 +4,8 @@ import { ChallengeService } from './challenges.service';
 import { ChallengeRepository } from './challenges.repository';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { UsersService } from 'src/users/users.service';
-import { UserRepository } from 'src/users/users.repository';
+import { UsersService } from '../users/users.service';
+import { UserRepository } from '../users/users.repository';
 import { PassportModule } from '@nestjs/passport';
 
 @Module({

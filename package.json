@@ -17,7 +17,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "build:serverless": "rm -rf ./.build && serverless offline",
+    "deploy": "serverless deploy --aws-profile hun",
+    "remove": "serverless remove --aws-profile hun"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.441.0",
@@ -34,7 +37,7 @@
     "aws-sdk": "^2.1484.0",
     "aws-serverless-express": "^3.4.0",
     "axios": "^1.6.5",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "date-fns": "^2.30.0",
@@ -54,7 +57,7 @@
     "@nestjs/testing": "^10.0.0",
     "@types/aws-lambda": "^8.10.125",
     "@types/aws-serverless-express": "^3.3.7",
-    "@types/bcrypt": "^5.0.1",
+    "@types/bcryptjs": "^2.4.6",
     "@types/ejs": "^3.1.5",
     "@types/express": "^4.17.17",
     "@types/jest": "^29.5.2",
@@ -96,5 +99,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }

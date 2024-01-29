@@ -98,7 +98,6 @@ export class UsersController {
       throw e;
     }
   }
-
   @Post('kakao')
   async kakoLogin(@Request() req: Req, @Body('code') code: string) {
     try {

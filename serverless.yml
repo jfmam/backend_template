@@ -1,6 +1,7 @@
-service: serverless-template
-
+service: wesave-backend
 useDotenv: true
+package:
+  individually: true
 
 plugins:
   - serverless-offline
@@ -9,16 +10,69 @@ plugins:
 provider:
   name: aws
   runtime: nodejs18.x
-  environment:
-    Auth_REDIRECT_URI: ${env:Auth_REDIRECT_URI}
-
+  region: ap-northeast-2
+  memorySize: 1024
+  timeout: 20
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: "*"
 functions:
   main:
-    handler: dist/serverless.handler
+    handler: src/main.handler
     events:
       - http:
           method: ANY
           path: /
+          cors: true
       - http:
           method: ANY
           path: '{proxy+}'
+          cors: true
+resources:
+  Resources: 
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Users
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    challengesTable:
+        Type: AWS::DynamoDB::Table
+        Properties:
+          TableName: Challenges
+          AttributeDefinitions:
+            - AttributeName: id
+              AttributeType: S
+            - AttributeName: userId
+              AttributeType: S
+          KeySchema:
+            - AttributeName: id
+              KeyType: HASH
+            - AttributeName: userId
+              KeyType: RANGE
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+          GlobalSecondaryIndexes:
+            - IndexName: userIdIndex
+              KeySchema:
+                - AttributeName: userId
+                  KeyType: HASH
+              Projection:
+                ProjectionType: ALL
+              ProvisionedThroughput:
+                ReadCapacityUnits: 1
+                WriteCapacityUnits: 1
+custom:
+  serverless-offline:
+    httpPort: 4000
+    lambdaPort: 4001
